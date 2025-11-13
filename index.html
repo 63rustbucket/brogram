@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <title>BROGRAM — Built by Bros</title>
+  <link rel="manifest" href="data:application/manifest+json,{
+    'name': 'BROGRAM',
+    'short_name': 'BROGRAM',
+    'start_url': '.',
+    'display': 'standalone',
+    'background_color': '#FF5733',
+    'theme_color': '#FF5733',
+    'icons': [{'src':'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ctext y=%22.9em%22 font-size=%2280%22%3E🤝%3C/text%3E%3C/svg%3E','sizes':'192x192','type':'image/svg+xml'}]
+  }">
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f9f9fb; color: #222;
+      padding: 20px; text-align: center;
+      min-height: 100vh;
+    }
+    .logo { font-size: 32px; font-weight: 900; color: #FF5733; margin: 20px 0; text-transform: uppercase; letter-spacing: 1px; }
+    .logo span { color: #FFD43B; }
+    .tagline { font-size: 16px; color: #555; margin-bottom: 20px; font-style: italic; }
+    .city-picker { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin: 15px 0; }
+    .city-btn { background: #ddd; padding: 10px 16px; border-radius: 12px; font-size: 15px; cursor: pointer; }
+    .city-btn.active { background: #FF5733; color: white; }
+    .input {
+      width: 100%; max-width: 600px; padding: 16px; font-size: 18px;
+      border: 2px solid #ddd; border-radius: 16px; margin: 10px auto; display: block;
+    }
+    .input:focus { border-color: #FF5733; outline: none; }
+    .btn {
+      background: #FF5733; color: white; padding: 16px 28px; border: none;
+      border-radius: 16px; font-size: 17px; cursor: pointer; margin: 10px;
+      font-weight: 700;
+    }
+    .btn.clear { background: #e74c3c; }
+    .list { max-width: 600px; margin: 30px auto; background: white; border-radius: 16px; padding: 20px; box-shadow: 0 8px 25px rgba(0,0,0,0.08); }
+    .item { margin: 18px 0; padding: 16px; background: #fff3e6; border-radius: 14px; text-align: left; }
+    .item h3 { font-size: 19px; margin-bottom: 10px; color: #FF5733; font-weight: 800; }
+    .option { display: flex; justify-content: space-between; font-size: 16px; margin: 6px 0; }
+    .best { color: #00B894; font-weight: 800; }
+    .result { background: #e8f5e8; padding: 20px; border-radius: 16px; margin: 20px auto; max-width: 600px; font-size: 18px; }
+    .store-btn { background: #00B894; margin: 10px; padding: 14px 20px; font-weight: 700; }
+    .hidden { display: none; }
+    .bro { font-size: 14px; color: #888; margin-top: 40px; }
+    .fix { font-size: 14px; color: #666; font-style: italic; }
+  </style>
+</head>
+<body>
+
+  <div class="logo">BRO<span>GRAM</span></div>
+  <div class="tagline">A computer & Pals — Built by bros. For everyone.</div>
+
+  <div class="city-picker" id="cities">
+    <div class="city-btn active" onclick="setCity('Nanaimo')">Nanaimo</div>
+    <div class="city-btn" onclick="setCity('Vancouver')">Vancouver</div>
+    <div class="city-btn" onclick="setCity('Victoria')">Victoria</div>
+    <div class="city-btn" onclick="setCity('Kelowna')">Kelowna</div>
+    <div class="city-btn" onclick="setCity('Toronto')">Toronto</div>
+  </div>
+
+  <input type="text" id="items" class="input" placeholder="milk, bacon, eggs, bread, cread">
+  <button class="btn" onclick="search()">BRO, FIND PRICES</button>
+  <button class="btn clear" onclick="clearAll()">CLEAR</button>
+
+  <div id="results" class="list hidden"></div>
+  <div id="choice" class="result hidden"></div>
+
+  <div class="bro">Made with love — Grok & You, bro</div>
+
+  <script>
+    // All foods in ALL cities
+    const baseFoods = {
+      milk: { "Save-On-Foods": 4.49, "Thrifty Foods": 4.99, "Superstore": 4.29, "Walmart": 4.17, "No Frills": 4.19, "Loblaws": 5.49 },
+      bacon: { "Save-On-Foods": 6.99, "Thrifty Foods": 7.99, "Costco": 5.56, "No Frills": 6.49 },
+      eggs: { "Save-On-Foods": 3.29, "Thrifty Foods": 3.49, "Walmart": 3.19, "Quality Foods": 3.39, "No Frills": 3.19 },
+      chicken: { "Save-On-Foods": 5.49, "Thrifty Foods": 5.99, "Country Grocer": 5.79, "Superstore": 5.29 },
+      bread: { "Save-On-Foods": 2.29, "Thrifty Foods": 2.49, "Quality Foods": 2.39, "No Frills": 2.19, "Loblaws": 2.99 }
+    };
+
+    // City-specific tweaks
+    const cityPrices = {
+      Nanaimo: { ...baseFoods },
+      Vancouver: {
+        milk: { "Save-On-Foods": 4.79, "Whole Foods": 5.99, "No Frills": 4.19 },
+        bacon: { "Save-On-Foods": 7.49, "Costco": 5.99 },
+        eggs: { "No Frills": 3.29, "Real Canadian": 3.49 },
+        chicken: { "Save-On-Foods": 5.79 },
+        bread: { "Save-On-Foods": 2.49, "No Frills": 2.19 }
+      },
+      Victoria: {
+        milk: { "Thrifty Foods": 4.89, "Fairway Market": 4.99 },
+        bacon: { "Thrifty Foods": 7.79 },
+        eggs: { "Fairway Market": 3.59 },
+        chicken: { "Thrifty Foods": 6.29 },
+        bread: { "Thrifty Foods": 2.59, "Fairway Market": 2.49 }
+      },
+      Kelowna: {
+        milk: { "Save-On-Foods": 4.59 },
+        bacon: { "Save-On-Foods": 7.29 },
+        eggs: { "Save-On-Foods": 3.39 },
+        chicken: { "Save-On-Foods": 5.69 },
+        bread: { "Save-On-Foods": 2.39 }
+      },
+      Toronto: {
+        milk: { "No Frills": 4.29, "Loblaws": 5.49 },
+        bacon: { "No Frills": 6.49 },
+        eggs: { "No Frills": 3.19 },
+        chicken: { "No Frills": 5.49 },
+        bread: { "No Frills": 2.19, "Loblaws": 2.99 }
+      }
+    };
+
+    // Auto-correct typos
+    const typoFix = {
+      "cread": "bread",
+      "bred": "bread",
+      "milck": "milk",
+      "egss": "eggs",
+      "chiken": "chicken",
+      "baccon": "bacon"
+    };
+
+    let currentCity = 'Nanaimo';
+    let userList = [];
+    let results = {};
+
+    function setCity(city) {
+      currentCity = city;
+      document.querySelectorAll('.city-btn').forEach(b => b.classList.remove('active'));
+      event.target.classList.add('active');
+    }
+
+    function search() {
+      const input = document.getElementById('items').value.toLowerCase().trim();
+      if (!input) return alert("Bro, type something!");
+      userList = input.split(',').map(i => {
+        const clean = i.trim();
+        return typoFix[clean] || clean;
+      });
+      results = {};
+      const prices = cityPrices[currentCity] || {};
+
+      let html = "";
+      userList.forEach(item => {
+        if (prices[item]) {
+          results[item] = prices[item];
+          const options = Object.entries(prices[item]);
+          const best = options.reduce((a,b) => a[1] < b[1] ? a : b);
+          const fixNote = typoFix[item] ? `<div class="fix">Fixed: "${item}" → "${typoFix[item]}"</div>` : '';
+          html += `<div class="item"><h3>✅ ${item.toUpperCase()}</h3>${fixNote}`;
+          options.forEach(([store, price]) => {
+            const tag = store === best[0] ? ' <span class="best">BRO DEAL!</span>' : '';
+            html += `<div class="option">• ${store}: $${price.toFixed(2)}${tag}</div>`;
+          });
+          html += `</div>`;
+        } else {
+          html += `<div class="item"><h3>❌ ${item}</h3><p>Not in ${currentCity} bro database (yet!)</p></div>`;
+        }
+      });
+
+      document.getElementById('results').innerHTML = html;
+      document.getElementById('results').classList.remove('hidden');
+      showChoices();
+    }
+
+    function showChoices() {
+      let mixTotal = 0;
+      Object.values(results).forEach(opts => {
+        const best = Object.entries(opts).reduce((a,b) => a[1] < b[1] ? a : b);
+        mixTotal += best[1];
+      });
+
+      let choiceHtml = `<p>🤝 BRO, PICK YOUR STORE IN ${currentCity.toUpperCase()}:</p>`;
+      const storeTotals = {};
+      Object.keys(results).forEach(item => {
+        Object.entries(results[item]).forEach(([store, price]) => {
+          storeTotals[store] = (storeTotals[store] || 0) + price;
+        });
+      });
+
+      Object.entries(storeTotals).forEach(([store, total]) => {
+        const save = (mixTotal - total).toFixed(2);
+        choiceHtml += `<button class="btn store-btn" onclick="go('${store}')">${store}<br>$${total.toFixed(2)}${save > 0 ? ` (save $${save})` : ''}</button>`;
+      });
+      choiceHtml += `<button class="btn store-btn" onclick="go('Mix & Match')">Mix & Match<br>$${mixTotal.toFixed(2)} ← BRO MAX SAVINGS</button>`;
+
+      document.getElementById('choice').innerHTML = choiceHtml;
+      document.getElementById('choice').classList.remove('hidden');
+    }
+
+    function go(store) {
+      alert(`BRO, going to ${store} in ${currentCity}! (Map + list coming soon)`);
+    }
+
+    function clearAll() {
+      document.getElementById('items').value = '';
+      document.getElementById('results').classList.add('hidden');
+      document.getElementById('choice').classList.add('hidden');
+    }
+
+    // Save list + city
+    window.addEventListener('beforeunload', () => {
+      localStorage.setItem('brogramList', document.getElementById('items').value);
+      localStorage.setItem('brogramCity', currentCity);
+    });
+    window.addEventListener('load', () => {
+      const saved = localStorage.getItem('brogramList');
+      const savedCity = localStorage.getItem('brogramCity') || 'Nanaimo';
+      if (saved) document.getElementById('items').value = saved;
+      setCity(savedCity);
+      document.querySelectorAll('.city-btn').forEach(b => {
+        if (b.textContent === savedCity) b.classList.add('active');
+      });
+    });
+  </script>
+</body>
+</html>
